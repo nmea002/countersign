@@ -1,0 +1,457 @@
+{
+  "info": {
+    "name": "Countersign — Windows team API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Audited 2026-11-14. Configure baseUrl through authenticated SSH forwarding. Provider keys stay on the server. All POST requests and SSE are skipped by default. Set collection variable allowRequestOnce to one exact request name, then Send that individual request; the opt-in is cleared before sending. Use current Postman with pm.execution.skipRequest support. See docs/API.md. Do not batch-run live mutations."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000",
+      "type": "string"
+    },
+    {
+      "key": "caseId",
+      "value": "PR-1041",
+      "type": "string"
+    },
+    {
+      "key": "caseNumber",
+      "value": "1041",
+      "type": "string"
+    },
+    {
+      "key": "vendorId",
+      "value": "v-cascade",
+      "type": "string"
+    },
+    {
+      "key": "allowRequestOnce",
+      "value": "",
+      "type": "string",
+      "description": "One-use opt-in: exact displayed name of one state-changing/SSE request. Leave empty for normal reads."
+    },
+    {
+      "key": "ledgerId",
+      "value": "L1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "COUNTERSIGN_TOKEN when the server requires one; leave empty on a loopback server."
+    }
+  ],
+  "item": [
+    {
+      "name": "Read-only",
+      "item": [
+        {
+          "name": "Dashboard HTML",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/state",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Held case summaries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cases?status=held",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Case detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cases/{{caseId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Vendors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vendors",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Daily vendor history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vendors/{{vendorId}}/history",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Overview metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/metrics/overview",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Verify LOCAL ledger chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ledger/verify",
+            "description": "Does not fetch Solana transactions."
+          },
+          "response": []
+        },
+        {
+          "name": "SSE events (persistent stream)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/events",
+            "description": "Keeps the connection open; curl -N may be easier than a collection runner. Skipped by default; see allowRequestOnce in docs/API.md."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Service health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Which services are live, connected, stand-ins or need attention, from the running adapters."
+          },
+          "response": []
+        },
+        {
+          "name": "Linked cases graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/graph",
+            "description": "Cases joined to the IPs and account fingerprints they share."
+          },
+          "response": []
+        },
+        {
+          "name": "Monthly paid/held/declined",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/metrics/timeline?months=13",
+            "description": "Monthly buckets; TimescaleDB time_bucket when Tiger is live."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify ledger entry on Solana",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ledger/{{ledgerId}}/onchain",
+            "description": "Recomputes the hash and compares the devnet memo and signer. Reads devnet; no transaction is sent."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "State-changing — run individually",
+      "item": [
+        {
+          "name": "Submit synthetic bank-change invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices",
+            "description": "Creates a case and can send an actual Photon alert. Other scenarios can pay via Nessie. Run deliberately, not in a batch. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"bec\",\n  \"wait\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "HOLD a specific case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cases/{{caseId}}/decision",
+            "description": "Blocks this held request and blocklists its bank fingerprint. Changing action to approve can release payment. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"hold\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulator WHY reply (403 with Photon)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sms/reply",
+            "description": "Simulator endpoint is disabled when Photon is configured. APPROVE/HOLD commands mutate state. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"WHY {{caseNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask a case a question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cases/{{caseId}}/ask",
+            "description": "Answer drawn only from the case file, with checked citations. Never changes a decision. May call Gemini when configured. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Where did the sign-in come from?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Destructive / provider-only — reference",
+      "item": [
+        {
+          "name": "RESET — DESTRUCTIVE, do not batch-run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/seed",
+            "description": "Deletes local/cloud application data and creates remote bank resources. Current reset is not recoverable/atomic. Requires explicit operator intent. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirm\": \"reset\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nessie decision webhook — reference only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Nessie-Signature",
+                "value": "REPLACE_WITH_VALID_PROVIDER_SIGNATURE",
+                "disabled": true
+              }
+            ],
+            "url": "{{baseUrl}}/api/webhooks/nessie",
+            "description": "Provider-only: this illustrative payload is not the complete provider contract and has no valid signature. Consult current Nessie OpenAPI and fix fail-closed validation before integration. Skipped by default; see allowRequestOnce in docs/API.md.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction\": {\n    \"payee_id\": \"REPLACE_WITH_SYNTHETIC_PAYEE_ID\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('allowRequestOnce') !== pm.info.requestName) {",
+                  "  console.warn('Skipped: set collection allowRequestOnce to this exact request name to send deliberately.');",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.collectionVariables.set('allowRequestOnce', '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

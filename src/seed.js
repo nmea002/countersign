@@ -20,14 +20,20 @@ const VENDORS = [
   { id: 'v-brightline', name: 'Brightline Electric', domain: 'brightline-electric.example', category: 'utilities', base: 6900, prefix: 'BLE', phone: '(609) 555-0188', ip: '203.0.113.140', bank: { routing: '021409169', account: '6021897340', bankName: 'Wells Fargo' } },
 ];
 
-export async function seed({ store, series, bank }) {
-  await store.reset();
-  await series.reset();
+// Meta documents that survive a reset: case numbers never repeat (so an old "APPROVE 1042"
+// text cannot approve a new case), and the Photon thread/cursor state is kept.
+export const KEEP_META = ['requestSeq', 'photonSpace', 'photonState'];
+
+// Remote bank setup runs first; local data is only cleared once it has succeeded.
+export async function seed({ store, series, bank, keepMessages = false }) {
   const rand = rng(20261114);
   const vendors = VENDORS.map(({ base, prefix, ip, ...v }) => ({
     ...v, senderIps: [ip], bank: { ...toBank(v.bank.routing, v.bank.account, v.bank.bankName), verifiedAt: iso(400 * DAY), verifiedBy: 'onboarding call' }, bankHistory: [], createdAt: iso(420 * DAY),
   }));
-  const withMerchants = await bank.setup(cfg.company, vendors, 412_650);
+  const { meta, vendors: withMerchants } = await bank.setup(cfg.company, vendors, 412_650);
+  await store.reset({ keep: keepMessages ? ['messages'] : [], keepMeta: KEEP_META });
+  await series.reset();
+  await store.col('meta').put(meta);
   for (const v of withMerchants) await store.col('vendors').put(v);
 
   // Twelve monthly payments per vendor, the last one about a month ago.

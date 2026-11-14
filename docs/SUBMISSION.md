@@ -1,5 +1,7 @@
 # Submission kit
 
+> Audit note, November 14, 2026 (evening): Nessie, Gemini, Tiger Data and Solana are verified live through the app, Photon outbound is verified to delivered, and MongoDB Atlas is blocked by its IP list ([LIVE_VERIFICATION.md](LIVE_VERIFICATION.md)). Nothing is publicly hosted: the app runs on a teammate's Windows laptop. The claims below were corrected to match; re-check them against the final demo before posting.
+
 Draft text for Devpost and the DEV post, the two-minute pitch, and what each prize still needs. Edit before posting: anything in [brackets] is yours to fill in.
 
 ## Devpost
@@ -22,11 +24,12 @@ Countersign reads every payment request that reaches accounts payable. It extrac
 
 - Node.js and Express, a single-page dashboard with live updates, no build step
 - Gemini reads the invoice email and writes the explanation; deterministic checks make the decision
-- MongoDB Atlas holds vendors, requests and case files; Tiger Data holds paid, held and declined payment events in a hypertable with a continuous aggregate for per-vendor baselines
-- Capital One Nessie v2 is the bank: an operating account, a payee account per vendor, invoices as bills, payments as transfers, and a decision hook that declines transfers to unverified accounts
+- MongoDB Atlas holds vendors, requests and case files (confirm Atlas is connected before claiming this); Tiger Data holds paid, held and declined payment events in a hypertable with a continuous aggregate for per-vendor baselines
+- Capital One Nessie v2 is the bank: an operating account, a payee account per vendor, invoices as bills, payments as transfers, and a decision-hook handler (fail-closed, bound to the payment Countersign started) that is ready for a public URL; payments count as paid only when Nessie reports the transfer completed
 - Photon texts the approver and reads replies
 - Each ledger entry is a link in a SHA-256 hash chain and is anchored on Solana devnet
-- Docker on Vultr, with a background worker that re-sends an unanswered hold
+- Runs on a teammate's Windows laptop; a background worker re-sends an unanswered hold and reconciles pending bank transfers. Docker/Vultr deployment files exist but were not deployed
+- Ask-the-case: the approver can ask a question by text or on the dashboard and gets an answer drawn only from that case's evidence, with checked citations
 
 ### Challenges
 
@@ -38,7 +41,7 @@ The hijacked-portal case. The email is genuine, passes SPF, DKIM and DMARC, and 
 
 ### What's next
 
-Real inbox ingestion, PDF invoices, login and roles for the dashboard, and a callback-verification flow where the approver records who they spoke to.
+Real inbox ingestion, per-user login and roles for the dashboard, a public HTTPS endpoint for Nessie's decision hook, and a callback-verification flow where the approver records who they spoke to.
 
 ## Two-minute pitch
 
@@ -53,13 +56,13 @@ Real inbox ingestion, PDF invoices, login and roles for the dashboard, and a cal
 | Prize | What the judges will look for | Still needed |
 |---|---|---|
 | Business and Enterprise (main track) | Working product, clear problem | Nothing beyond a clean demo |
-| Gemini API | Real use of the model | Key in `.env`; confirm the "Read by: Gemini" label appears |
-| MongoDB Atlas | Atlas in use | Cluster URI; optional Atlas Search index on `vendors.name` |
-| Tiger Data | Time-series use, continuous aggregates, compression | Service URL; show the hypertable, `vendor_daily` aggregate and compression policy in `src/timeseries.js` |
-| Solana | On-chain use | Fund a devnet key; click a ledger entry through to the explorer |
-| Vultr | Hosted on Vultr | Create an instance, run `deploy/vultr-cloud-init.sh` |
-| GoDaddy Registry | A registered domain | Register one and point it at the Vultr IP |
-| Capital One Nessie | Creative use of Nessie endpoints | Key in `.env`, press Reset demo |
+| Gemini API | Real use of the model | Verified live; show "Read by: Gemini" and an ask-the-case answer with citations |
+| MongoDB Atlas | Atlas in use | Fix the IP access list, then confirm the badge says live and a match trace says `atlas-search` |
+| Tiger Data | Time-series use, continuous aggregates, compression | Verified live; show the monthly chart (time_bucket) and vendor chart (vendor_daily) |
+| Solana | On-chain use | Verified live; press "verify" on a ledger entry and open it in the explorer |
+| Vultr | Hosted on Vultr | Not eligible as things stand: the account needs funding and nothing is deployed |
+| GoDaddy Registry | A registered domain | `countersign.work` is registered (Porkbun) but not serving the app; check this prize's registrar rules before claiming |
+| Capital One Nessie | Creative use of Nessie endpoints | Verified live; show a transfer going pending → completed and the held one never moving |
 | Arlequin AI-Driven Forensics | Evidence-backed findings, a timeline, something keyword search misses | Lead with the hijacked-portal case; say the data is synthetic |
 | Photon | Live on a Photon channel | Project, key, approver number; text the agent once first |
 | Amazon Practical AI | Agent that reasons, plans, acts, adapts | Show the agent trace, the blocklist and the vendor-master update |
@@ -69,6 +72,8 @@ Real inbox ingestion, PDF invoices, login and roles for the dashboard, and a cal
 | ChatOverflow | A connected coding agent | Connect yours at chatoverflow.dev |
 
 ## DEV post draft
+
+The full, current draft is [DEV_POST.md](DEV_POST.md). The short notes below are kept for reference.
 
 **Title:** Countersign: an agent that stops the "our bank details have changed" email
 

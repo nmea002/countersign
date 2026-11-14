@@ -33,6 +33,9 @@ header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; bord
 .pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink3); }
 .pill.live i { background: var(--good); }
 .pill.live { color: var(--ink); }
+.pill.active i { background: var(--ink2); }
+.pill.degraded i { background: var(--crit); }
+.pill.degraded { color: var(--crit); border-color: var(--crit); }
 .ghost { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
 .ghost:hover { background: var(--sunken); }
 main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; gap: 16px; padding: 16px 24px 40px; align-items: start; }
@@ -116,6 +119,36 @@ dt { color: var(--ink2); } dd { margin: 0; font-variant-numeric: tabular-nums; o
 .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 4px 8px; border-radius: 5px; white-space: nowrap; transform: translate(-50%, -130%); display: none; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 800px) { .cols { grid-template-columns: 1fr; } }
+.overview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; padding: 16px 24px 0; }
+@media (max-width: 1000px) { .overview { grid-template-columns: 1fr; } }
+.overview .card { margin-bottom: 0; }
+.legend { display: flex; gap: 12px; font-size: 12px; color: var(--ink2); margin: -4px 0 6px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ask { display: flex; gap: 6px; }
+.ask input { flex: 1; min-width: 0; background: var(--sunken); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font: inherit; }
+.answer { margin-top: 10px; padding: 10px 12px; background: var(--sunken); border-radius: 8px; }
+.answer small { color: var(--ink3); display: block; margin-top: 4px; }
+.vres { font-size: 11px; grid-column: 2; }
+.hint { color: var(--ink2); font-size: 13px; margin: -4px 0 10px; }
+.svc { margin-left: auto; position: relative; }
+.svc summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px; font-size: 12px; background: var(--surface); color: var(--ink2); margin: 0; }
+.svc summary::-webkit-details-marker { display: none; }
+.svc summary i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+.svc summary i.warn { background: var(--crit); }
+.svclist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: 300px; max-width: 80vw; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+.svclist .pill { justify-content: space-between; border-radius: 6px; }
+.svclist .pill small { color: var(--ink3); font-size: 11px; text-align: right; }
+.overview-wrap { padding: 12px 24px 0; }
+.overview-wrap > summary { color: var(--ink2); font-size: 13px; }
+.overview-wrap .overview { padding: 10px 0 0; }
+.scn { padding: 7px 10px; }
+.scn b { font-size: 13px; }
+.scn small { font-size: 12px; }
+.next { margin-top: 8px; font-weight: 600; color: var(--ink); }
+details.more { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+details.more > summary { margin: 0; font-weight: 600; color: var(--ink2); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+details.more[open] > summary { margin-bottom: 10px; }
+.legend-why { color: var(--ink3); font-size: 12px; margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -124,25 +157,32 @@ dt { color: var(--ink2); } dd { margin: 0; font-variant-numeric: tabular-nums; o
     <div class="brand">Counter<span>sign</span></div>
     <div class="sub" id="company"></div>
   </div>
-  <div class="pills" id="pills"></div>
+  <details class="svc" id="svc"><summary id="svcsum"></summary><div class="svclist" id="pills"></div></details>
   <button class="ghost" id="reset" title="Reload the demo company and clear the queue">Reset demo</button>
 </header>
 <section class="stats" id="stats"></section>
+<details class="overview-wrap" data-keep="overview">
+  <summary>Activity over the last year, and cases linked by the same attacker</summary>
+  <section class="overview">
+    <div class="card"><h2>Payment activity by month</h2><div class="legend"><span><i style="background:var(--series)"></i>paid</span><span><i style="background:var(--warn)"></i>held</span><span><i style="background:var(--crit)"></i>declined</span></div><div class="chart" id="timeline"></div></div>
+    <div class="card"><h2>Linked activity</h2><p class="hint">Cases that share an IP address or bank account. Red means the same thing showed up in more than one case.</p><div class="chart" id="graph"></div></div>
+  </section>
+</details>
 <main>
   <div>
     <div class="card">
-      <h2>Send an invoice to accounts payable</h2>
+      <h2>Try an invoice</h2>
+      <p class="hint">Each example is a realistic invoice. Pick one and watch Countersign check it.</p>
       <div id="scenarios"></div>
-      <details>
-        <summary>Upload an invoice PDF</summary>
+      <details data-keep="own">
+        <summary>Check your own invoice</summary>
+        <p class="hint" style="margin-top:6px">Upload a PDF:</p>
         <input type="file" id="pdf" accept="application/pdf">
         <input id="sender" placeholder="Sender email (optional)" style="width:100%;margin:6px 0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunken);color:var(--ink);font:inherit">
-        <button class="primary" id="sendpdf">Check this invoice</button>
-      </details>
-      <details>
-        <summary>Paste a raw email</summary>
+        <button class="primary" id="sendpdf">Check this PDF</button>
+        <p class="hint" style="margin-top:12px">Or paste a full email:</p>
         <textarea id="raw" placeholder="Headers, a blank line, then the body"></textarea>
-        <button class="primary" id="sendraw" style="margin-top:6px">Submit</button>
+        <button class="primary" id="sendraw" style="margin-top:6px">Check this email</button>
       </details>
     </div>
     <div class="card">
@@ -181,30 +221,115 @@ const api = (path, body) => fetch(path, body ? { method: 'POST', headers: { 'Con
 const STATUS = {
   analysing: ['idle', '◌', 'Checking'], cleared: ['good', '✓', 'Cleared'], paid: ['good', '✓', 'Paid'],
   held: ['warn', '⏸', 'On hold'], approved: ['good', '✓', 'Approved'], blocked: ['crit', '✕', 'Blocked'], pay_failed: ['crit', '!', 'Payment failed'],
+  paying: ['idle', '◌', 'Paying'], pay_pending: ['warn', '◌', 'Awaiting bank'],
 };
 const chip = (st) => { const [c, i, l] = STATUS[st] || STATUS.analysing; return `<span class="chip ${c}">${i} ${l}</span>`; };
 
-let state = null, selected = null, openEv = {}, lastTop = null;
+let state = null, selected = null, openEv = {}, lastTop = null, answers = {}, verified = {}, keep = {};
+// Remember which expandable sections are open, so live refreshes don't close them.
+document.addEventListener('toggle', (e) => { const k = e.target.dataset?.keep; if (k) keep[k] = e.target.open; }, true);
+
+// One plain sentence on what happens next for this case.
+function nextStep(r, vendor) {
+  switch (r.status) {
+    case 'held': return vendor ? `Next: call ${vendor.name} on ${vendor.phone}, the number on file, then approve or block.` : 'Next: this sender is not an approved vendor. Block it, or onboard the vendor first.';
+    case 'paid': return 'Paid. The bank confirmed the transfer; nothing else to do.';
+    case 'pay_pending': case 'paying': return 'Sent to the bank. Waiting for it to confirm the transfer.';
+    case 'pay_failed': return `The bank did not complete this payment: ${r.payment?.error || 'unknown error'}.`;
+    case 'blocked': return 'Blocked. Nothing was paid, and this bank account is now on the blocklist.';
+    default: return '';
+  }
+}
 
 async function refresh() {
   state = await api('/api/state');
   const top = state.cases[0]?.id || null;
   if (top !== lastTop) { selected = top; lastTop = top; } // follow the newest request as it arrives
   renderShell();
+  const [timeline, graph] = await Promise.all([api('/api/metrics/timeline'), api('/api/graph')]);
+  drawTimeline($('timeline'), timeline);
+  drawGraph($('graph'), graph);
   await renderDetail();
+}
+
+// Monthly paid / held / declined totals, grouped bars, one shared dollar axis.
+function drawTimeline(el, rows) {
+  if (!rows?.length) { el.innerHTML = '<div class="empty">No payment events yet.</div>'; return; }
+  const S = [['paid', 'var(--series)'], ['held', 'var(--warn)'], ['declined', 'var(--crit)']];
+  const W = 640, H = 190, L = 52, R = 8, T = 10, B = 24;
+  const max = Math.max(1, ...rows.flatMap((r) => S.map(([k]) => r[k].total))) * 1.08;
+  const step = (W - L - R) / rows.length, bw = Math.max(3, Math.min(12, (step - 6) / 3)), y = (v) => T + (H - T - B) * (1 - v / max);
+  const k = (v) => v >= 1000 ? '$' + Math.round(v / 1000) + 'k' : '$' + Math.round(v);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Paid, held and declined amounts per month">`;
+  for (const t of [0, max / 2 / 1.08, max / 1.08]) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${k(t)}</text>`;
+  rows.forEach((r, i) => {
+    const x0 = L + step * i + (step - bw * 3) / 2;
+    S.forEach(([key, color], j) => {
+      const v = r[key].total; if (!v) return;
+      const x = x0 + j * bw, top = y(v);
+      s += `<rect x="${x}" y="${top}" width="${bw - 1}" height="${H - B - top}" rx="1.5" fill="${color}"/>`;
+    });
+    const tip = `${new Date(r.bucket + 'T12:00:00Z').toLocaleString('en-US', { month: 'long', year: 'numeric' })} · paid ${usd(r.paid.total)} (${r.paid.n}) · held ${usd(r.held.total)} (${r.held.n}) · declined ${usd(r.declined.total)} (${r.declined.n})`;
+    s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent" data-tip="${esc(tip)}" data-x="${L + step * (i + 0.5)}" data-y="${T + 20}"/>`;
+    if (i % 2 === rows.length % 2 || rows.length < 8) s += `<text x="${L + step * (i + 0.5)}" y="${H - 8}" text-anchor="middle">${new Date(r.bucket + 'T12:00:00Z').toLocaleString('en-US', { month: 'short' })}</text>`;
+  });
+  el.innerHTML = s + '</svg><div class="tip"></div>';
+  hoverTips(el, W);
+}
+
+// Cases (left) joined to the indicators they share (right). Shared indicators are drawn in red.
+function drawGraph(el, g) {
+  const cs = g.nodes.filter((n) => n.kind === 'case'), inds = g.nodes.filter((n) => n.kind !== 'case');
+  if (!cs.length) { el.innerHTML = '<div class="empty">Investigated cases and the IPs and accounts they share appear here.</div>'; return; }
+  const W = 460, rowH = 30, H = Math.max(cs.length, inds.length) * rowH + 16, xc = 10, xi = 270;
+  const yc = (i) => 16 + i * rowH + (Math.max(cs.length, inds.length) - cs.length) * rowH / 2;
+  const yi = (i) => 16 + i * rowH + (Math.max(cs.length, inds.length) - inds.length) * rowH / 2;
+  const pos = new Map([...cs.map((n, i) => [n.id, yc(i)]), ...inds.map((n, i) => [n.id, yi(i)])]);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cases linked by shared indicators">`;
+  for (const e of g.edges) {
+    const shared = inds.find((n) => n.id === e.to)?.cases > 1;
+    s += `<path d="M${xc + 180},${pos.get(e.from)} C${xc + 225},${pos.get(e.from)} ${xi - 45},${pos.get(e.to)} ${xi},${pos.get(e.to)}" fill="none" stroke="${shared ? 'var(--crit)' : 'var(--line)'}" stroke-width="${shared ? 2 : 1.2}"/>`;
+  }
+  cs.forEach((n, i) => {
+    const [cls] = STATUS[n.status] || STATUS.analysing;
+    s += `<g data-id="${esc(n.id)}" style="cursor:pointer"><rect x="${xc}" y="${yc(i) - 11}" width="180" height="22" rx="6" fill="var(--${cls === 'idle' ? 'sunken' : cls + '-soft'})" stroke="${n.id === selected ? 'var(--accent)' : 'var(--line)'}"/>
+      <text x="${xc + 8}" y="${yc(i) + 4}" style="fill:var(--ink)">${esc(n.label.slice(0, 26))}</text></g>`;
+  });
+  inds.forEach((n, i) => {
+    const hot = n.cases > 1;
+    s += `<circle cx="${xi + 6}" cy="${yi(i)}" r="5" fill="${hot ? 'var(--crit)' : 'var(--ink3)'}"/>
+      <text x="${xi + 16}" y="${yi(i) + 4}" style="${hot ? 'fill:var(--crit);font-weight:600' : ''}">${esc(n.label)}${hot ? ` · ${n.cases} cases` : ''}</text>`;
+  });
+  el.innerHTML = s + '</svg>';
+}
+
+function hoverTips(el, W) {
+  const tip = el.querySelector('.tip'), svg = el.querySelector('svg');
+  svg.addEventListener('mousemove', (e) => {
+    const t = e.target.dataset?.tip;
+    if (!t) { tip.style.display = 'none'; return; }
+    const sc = svg.clientWidth / W;
+    tip.textContent = t; tip.style.display = 'block';
+    tip.style.left = Math.min(Math.max(e.target.dataset.x * sc, 160), svg.clientWidth - 160) + 'px'; tip.style.top = e.target.dataset.y * sc + 'px';
+  });
+  svg.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
 }
 let pending = null;
 const soon = () => { clearTimeout(pending); pending = setTimeout(refresh, 80); };
 
 function renderShell() {
-  $('company').textContent = `Guarding ${state.company}'s operating account`;
-  const names = { gemini: 'Gemini', mongodb: 'MongoDB', tiger: 'Tiger Data', nessie: 'Nessie', solana: 'Solana', photon: 'Photon' };
-  $('pills').innerHTML = Object.entries(state.integrations).map(([k, v]) =>
-    `<span class="pill ${v.live ? 'live' : ''}" title="${esc(v.detail)}"><i></i>${names[k]} · ${v.live ? 'live' : 'demo'}</span>`).join('');
+  $('company').textContent = `Checks every invoice before ${state.company} pays it. Clean ones pay on their own; suspicious ones wait for ${state.approver}.`;
+  const names = { gemini: 'Gemini · reads invoices', mongodb: 'MongoDB · stores cases', tiger: 'Tiger Data · payment history', nessie: 'Nessie · the bank', solana: 'Solana · tamper-proof log', photon: 'Photon · texts the approver' };
+  const ints = Object.entries(state.integrations);
+  const live = ints.filter(([, v]) => v.state === 'live' || v.state === 'active').length;
+  const bad = ints.filter(([, v]) => v.state === 'degraded').length;
+  $('svcsum').innerHTML = `<i class="${bad ? 'warn' : ''}"></i>${live ? `${live} of ${ints.length} services live` : 'Demo mode: built-in stand-ins'}${bad ? ` · ${bad} need attention` : ''}`;
+  $('pills').innerHTML = ints.map(([k, v]) =>
+    `<span class="pill ${esc(v.state)}" title="${esc(v.detail)}"><span><i style="display:inline-block;margin-right:6px"></i>${names[k]}</span><small>${esc({ live: 'live', active: 'connected', degraded: 'needs attention', demo: 'stand-in' }[v.state] || v.state)}</small></span>`).join('');
   const s = state.stats;
   $('stats').innerHTML = [
-    ['Operating balance', usd(s.balance), state.integrations.nessie.live ? 'Capital One Nessie' : 'mock bank'],
-    ['Paid', usd(s.paid), `${s.paidCount} payment${s.paidCount === 1 ? '' : 's'} released`],
+    ['Operating balance', usd(s.balance), state.integrations.nessie.state === 'demo' ? 'mock bank' : `Capital One Nessie · ${esc(state.integrations.nessie.state)}`],
+    ['Paid', usd(s.paid), `${s.paidCount} payment${s.paidCount === 1 ? '' : 's'} completed${s.pendingCount ? ` · ${s.pendingCount} awaiting bank` : ''}${s.failedCount ? ` · ${s.failedCount} failed` : ''}`],
     ['On hold', usd(s.held), `${s.heldCount} waiting on ${esc(state.approver)}`],
     ['Blocked', usd(s.blocked), `${s.blockedCount} payment${s.blockedCount === 1 ? '' : 's'} stopped`],
   ].map(([k, v, n]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join('');
@@ -229,14 +354,19 @@ function renderShell() {
 
   const ok = state.ledgerCheck.ok;
   $('chain').innerHTML = state.ledger.length ? `<span class="chip ${ok ? 'good' : 'crit'}" style="text-transform:none;letter-spacing:0">${ok ? '✓ chain intact' : '✕ broken at #' + state.ledgerCheck.brokenAt}</span>` : '';
-  $('ledger').innerHTML = state.ledger.length ? state.ledger.slice(0, 12).map((e) => `
+  $('ledger').innerHTML = (state.ledger.length ? '<p class="hint">Every verdict and decision, chained so history cannot be rewritten.</p>' : '') + (state.ledger.length ? state.ledger.slice(0, 5).map((e) => `
     <div class="led"><b>#${e.seq}</b><span><b>${esc(e.action)}</b> · ${esc(e.requestId)} · ${esc(e.actor)}</span>
-      <span class="h">${e.hash.slice(0, 24)}… ${e.solana ? `<a href="${esc(e.solana.url)}" target="_blank" rel="noopener">on Solana devnet ↗</a>` : state.integrations.solana.live ? '· anchoring…' : '· local chain'}</span></div>`).join('')
-    : '<div class="empty">Every verdict and decision is logged here.</div>';
+      <span class="h">${e.hash.slice(0, 24)}… ${e.solana ? `<a href="${esc(e.solana.url)}" target="_blank" rel="noopener">on Solana devnet ↗</a> <button class="ev" data-verify="${esc(e.id)}">verify</button>` : state.integrations.solana.state !== 'demo' ? '· anchoring…' : '· local chain'}</span>
+      ${verified[e.id] ? `<span class="vres" style="color:var(--${verified[e.id].ok ? 'good' : 'crit'})">${verified[e.id].ok ? '✓ hash, memo and signer match devnet' : '✕ ' + esc(verified[e.id].reason || Object.entries(verified[e.id].checks || {}).filter(([, v]) => !v).map(([k]) => k + ' mismatch').join(', '))}</span>` : ''}</div>`).join('')
+    : '<div class="empty">Every verdict and decision is logged here.</div>') + (state.ledger.length > 5 ? `<p class="hint" style="margin-top:8px">${state.ledger.length - 5} older entries are kept and checked too.</p>` : '');
 }
 
 async function renderDetail() {
-  if (!selected) { $('detail').innerHTML = '<div class="card empty">Send an invoice to see Countersign check it.</div>'; return; }
+  if (!selected) { $('detail').innerHTML = `<div class="card"><h2>How it works</h2><ol style="margin:0;padding-left:20px;line-height:1.7;color:var(--ink2)">
+    <li><b style="color:var(--ink)">Read</b>: the invoice’s payee, amount and bank details are pulled out.</li>
+    <li><b style="color:var(--ink)">Check</b>: they are compared with the vendor’s history, email signals and portal logs.</li>
+    <li><b style="color:var(--ink)">Act</b>: clean invoices are paid; anything suspicious is held and the approver gets a text.</li></ol>
+    <p class="hint" style="margin-top:12px">Pick an example on the left to start.</p></div>`; return; }
   const { case: r, vendor, baseline } = await api('/api/cases/' + selected);
   if (!r || r.id !== selected) return;
   const v = r.verdict, x = r.extracted, [cls, icon, label] = STATUS[r.status] || STATUS.analysing;
@@ -244,6 +374,7 @@ async function renderDetail() {
   let h = `<div class="card"><div class="banner ${cls}" style="color:var(--${cls === 'idle' ? 'ink2' : cls})">
     <div style="color:var(--ink)"><div class="big">${icon} ${label} · ${esc(r.vendorName || r.email?.from || '')}</div>
       <p style="margin-top:4px">${esc(v?.summary || 'The agent is working on this request…')}</p>
+      ${nextStep(r, vendor) ? `<p class="next">${esc(nextStep(r, vendor))}</p>` : ''}
       ${v?.explainedBy ? `<small style="color:var(--ink3)">Explanation by ${v.explainedBy === 'gemini' ? 'Gemini' : 'template'}; decision by deterministic checks</small>` : ''}
       ${r.status === 'held' ? `<div class="acts"><button class="primary" data-act="approve" ${vendor ? '' : 'disabled title="Not an approved vendor"'}>Approve and pay</button><button class="hold" data-act="hold">Keep hold and block</button></div>` : ''}
     </div>
@@ -265,28 +396,54 @@ async function renderDetail() {
   }
   h += '</div>';
   if (v?.findings.length) {
-    h += `<div class="card"><h2>Findings (${v.findings.length})</h2>` + v.findings.map((f, i) => `
+    h += `<div class="card"><h2>What raised the alarm (${v.findings.length})</h2><p class="hint">Click an evidence tag to see the record behind it.</p>` + v.findings.map((f, i) => `
       <div class="finding"><div class="t"><b>${esc(f.title)}</b><span class="chip ${f.critical ? 'crit' : 'warn'}">${f.critical ? '✕ always holds' : '+' + f.points}</span></div>
         <p>${esc(f.detail)}</p>
         ${f.evidence.map((id) => `<button class="ev ${openEv[r.id + i] === id ? 'on' : ''}" data-ev="${id}" data-f="${i}">${id}</button>`).join('')}
         ${openEv[r.id + i] && ev[openEv[r.id + i]] ? `<div class="evbox"><span>${esc(ev[openEv[r.id + i]].source)} · ${esc(ev[openEv[r.id + i]].label)}</span><br>${esc(ev[openEv[r.id + i]].excerpt)}</div>` : ''}
       </div>`).join('') + '</div>';
   }
-  if (r.caseFile?.timeline.length) {
-    h += `<div class="card"><h2>Case file timeline</h2><ul class="tl">` + r.caseFile.timeline.map((e) => `
-      <li class="${e.suspicious ? 'sus' : ''}"><time>${when(e.ts)}</time><span class="src">${esc(e.source)}</span>${esc(e.label)}
-        ${e.evidence.map((id) => `<span class="ev">${id}</span>`).join('')}</li>`).join('') + '</ul></div>';
+  if (v) {
+    const a = answers[r.id];
+    h += `<div class="card"><h2>Ask this case</h2><form class="ask" id="askform"><input id="askq" maxlength="300" placeholder="e.g. Who changed the bank details, and when?" autocomplete="off"><button class="primary">Ask</button></form>
+      ${a ? `<div class="answer">${a.pending ? 'Reading the case file…' : esc(a.answer)}${a.cites?.length ? `<div style="margin-top:6px">${a.cites.map((id) => `<button class="ev" data-cite="${id}">${id}</button>`).join('')}</div>` : ''}
+        ${a.cite && ev[a.cite] ? `<div class="evbox"><span>${esc(ev[a.cite].source)} · ${esc(ev[a.cite].label)}</span><br>${esc(ev[a.cite].excerpt)}</div>` : ''}
+        ${a.by ? `<small>Answered by ${a.by === 'gemini' ? 'Gemini, citations checked against the case file' : 'evidence search'}${a.rejected ? ` (model answer rejected: ${esc(a.rejected)})` : ''}. Informational only; it cannot change the decision.</small>` : ''}</div>` : ''}</div>`;
   }
-  if (baseline?.rows.length && x?.amount) h += `<div class="card"><h2>Payments to ${esc(vendor.name)}: last ${baseline.rows.filter((p) => p.requestId !== r.id).slice(-12).length} and this invoice</h2><div class="chart" id="chart"></div></div>`;
-  h += `<div class="card"><h2>Agent trace</h2><div class="trace">` + r.trace.map((t) =>
-    `<div><b>${esc(t.step)}</b>${t.tool ? ` <span class="tool">${esc(t.tool)}()</span>` : ''} ${esc(t.detail)}</div>`).join('') + '</div></div>';
+  const more = (key, title, body, openByDefault = false) =>
+    `<details class="more" data-keep="${key}" ${(keep[key] ?? openByDefault) ? 'open' : ''}><summary>${title}</summary>${body}</details>`;
+  if (r.caseFile?.timeline.length) {
+    const sus = r.caseFile.timeline.filter((e) => e.suspicious).length;
+    h += more('tl', `What happened, in order (${r.caseFile.timeline.length} events${sus ? `, ${sus} suspicious` : ''})`, `<ul class="tl">` + r.caseFile.timeline.map((e) => `
+      <li class="${e.suspicious ? 'sus' : ''}"><time>${when(e.ts)}</time><span class="src">${esc(e.source)}</span>${esc(e.label)}
+        ${e.evidence.map((id) => `<span class="ev">${id}</span>`).join('')}</li>`).join('') + '</ul>');
+  }
+  if (baseline?.rows.length && x?.amount) {
+    const spike = v?.findings.some((f) => f.code === 'AMOUNT_ANOMALY');
+    h += more('chart', `Past payments to ${esc(vendor.name)}${spike ? ' (this amount is unusual)' : ''}`, `<p class="legend-why">Daily totals from payment history; this invoice is the last bar and the dashed line is the average.</p><div class="chart" id="chart"></div>`, spike);
+  }
+  h += more('trace', `Every step the agent took (${r.trace.length})`, `<div class="trace">` + r.trace.map((t) =>
+    `<div><b>${esc(t.step)}</b>${t.tool ? ` <span class="tool">${esc(t.tool)}()</span>` : ''} ${esc(t.detail)}</div>`).join('') + '</div>');
   $('detail').innerHTML = h;
-  if ($('chart')) drawChart($('chart'), baseline, r);
+  if ($('chart')) drawChart($('chart'), baseline, r, await api(`/api/vendors/${encodeURIComponent(vendor.id)}/history`));
+  $('askform')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = $('askq').value.trim(); if (!q) return;
+    const id = r.id;
+    answers[id] = { pending: true }; renderDetail();
+    const out = await api(`/api/cases/${id}/ask`, { question: q });
+    answers[id] = out.error ? { answer: out.error } : out;
+    if (selected === id) renderDetail();
+  });
 }
 
-// One series (payment amounts), this invoice as the last bar, vendor mean as a reference line.
-function drawChart(el, b, r) {
-  const past = b.rows.filter((p) => p.requestId !== r.id).slice(-12);
+// One series (daily paid totals from the vendor_daily aggregate), this invoice as the last bar,
+// vendor mean as a reference line.
+function drawChart(el, b, r, daily) {
+  const today = new Date().toISOString().slice(0, 10);
+  const past = Array.isArray(daily) && daily.length
+    ? daily.filter((d) => !(r.status === 'paid' && d.day === today)).slice(-12).map((d) => ({ ts: d.day + 'T12:00:00Z', amount: d.total, invoiceNumber: `${d.n} payment${d.n === 1 ? '' : 's'}` }))
+    : b.rows.filter((p) => p.requestId !== r.id).slice(-12);
   const flagged = r.verdict?.findings.some((f) => f.code === 'AMOUNT_ANOMALY');
   const bars = past.map((p) => ({ label: new Date(p.ts).toLocaleString('en-US', { month: 'short' }), full: `${when(p.ts)} · ${p.invoiceNumber}`, v: p.amount }))
     .concat({ label: 'This', full: `This invoice · ${r.extracted.invoiceNumber || ''}`, v: r.extracted.amount, now: true });
@@ -318,9 +475,11 @@ function drawChart(el, b, r) {
 }
 
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-s],[data-id],[data-act],[data-ev],[data-q]');
+  const t = e.target.closest('[data-s],[data-id],[data-act],[data-ev],[data-q],[data-verify],[data-cite]');
   if (!t) return;
-  if (t.dataset.s) await api('/api/invoices', { scenario: t.dataset.s });
+  if (t.dataset.verify) { verified[t.dataset.verify] = { ok: false, reason: 'checking devnet…' }; renderShell(); verified[t.dataset.verify] = await api(`/api/ledger/${t.dataset.verify}/onchain`); renderShell(); }
+  else if (t.dataset.cite) { const a = answers[selected]; if (a) { a.cite = a.cite === t.dataset.cite ? null : t.dataset.cite; renderDetail(); } }
+  else if (t.dataset.s) await api('/api/invoices', { scenario: t.dataset.s });
   else if (t.dataset.id) { selected = t.dataset.id; refresh(); }
   else if (t.dataset.act) { const r = await api(`/api/cases/${selected}/decision`, { action: t.dataset.act }); if (r.error) alert(r.error); }
   else if (t.dataset.ev) { const key = selected + t.dataset.f; openEv[key] = openEv[key] === t.dataset.ev ? null : t.dataset.ev; renderDetail(); }
@@ -336,7 +495,7 @@ $('sendpdf').addEventListener('click', async () => {
   const r = await api('/api/invoices', { pdfBase64: btoa(bin), filename: file.name, sender: $('sender').value.trim() || undefined });
   if (r.error) alert(r.error); else $('pdf').value = '';
 });
-$('reset').addEventListener('click', async () => { if (confirm('Reload the demo data and clear the queue, texts and ledger?')) { await api('/api/seed', {}); lastTop = null; selected = null; refresh(); } });
+$('reset').addEventListener('click', async () => { if (confirm('Reload the demo data and clear the queue and ledger? Case numbers keep counting up' + (state.simulator ? '.' : ', and texts are kept.'))) { const r = await api('/api/seed', { confirm: 'reset' }); if (r.error) alert(r.error); lastTop = null; selected = null; refresh(); } });
 
 if (!location.search.includes('static')) { // ?static renders once, for screenshots
   const es = new EventSource('/api/events');

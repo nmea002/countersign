@@ -22,6 +22,17 @@ export function stats(rows) {
   };
 }
 
+// [{bucket,status,n,total}] -> [{bucket, paid:{n,total}, held:{...}, declined:{...}}], oldest first.
+function toBuckets(rows) {
+  const m = new Map();
+  for (const r of rows) {
+    const b = m.get(r.bucket) || { bucket: r.bucket, paid: { n: 0, total: 0 }, held: { n: 0, total: 0 }, declined: { n: 0, total: 0 } };
+    if (b[r.status]) { b[r.status].n += r.n; b[r.status].total = Math.round((b[r.status].total + r.total) * 100) / 100; }
+    m.set(r.bucket, b);
+  }
+  return [...m.values()].sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
+
 class LocalSeries {
   kind = 'local';
   constructor(store) { this.store = store; }
@@ -36,6 +47,10 @@ class LocalSeries {
       m.set(d.day, d);
     }
     return [...m.values()].map((d) => ({ ...d, avg: d.total / d.n }));
+  }
+  async buckets(months = 13) {
+    const since = new Date(Date.now() - months * 31 * DAY).toISOString();
+    return toBuckets((await this.store.col('payments').all()).filter((p) => p.ts >= since).map((p) => ({ bucket: `${p.ts.slice(0, 7)}-01`, status: p.status, n: 1, total: p.amount })));
   }
   async refresh() {}
   async reset() {}
@@ -78,6 +93,13 @@ class TigerSeries {
   async daily(vendorId) {
     const { rows } = await this.pool.query(`SELECT day, n, total_cents, avg_cents, max_cents FROM vendor_daily WHERE vendor_id = $1 ORDER BY day`, [vendorId]);
     return rows.map((r) => ({ day: new Date(r.day).toISOString().slice(0, 10), n: Number(r.n), total: Number(r.total_cents) / 100, avg: Number(r.avg_cents) / 100, max: Number(r.max_cents) / 100 }));
+  }
+  // Paid / held / declined per month, bucketed by TimescaleDB.
+  async buckets(months = 13) {
+    const { rows } = await this.pool.query(
+      `SELECT time_bucket('1 month', ts) AS bucket, status, count(*)::int AS n, sum(amount_cents)::bigint AS total_cents
+       FROM payments WHERE ts > now() - make_interval(months => $1) GROUP BY 1, 2 ORDER BY 1`, [months]);
+    return toBuckets(rows.map((r) => ({ bucket: new Date(r.bucket).toISOString().slice(0, 10), status: r.status, n: r.n, total: Number(r.total_cents) / 100 })));
   }
   // The policy only covers the last 90 days; after seeding a year of history, materialise all of it.
   async refresh() { await this.pool.query(`CALL refresh_continuous_aggregate('vendor_daily', NULL, NULL)`).catch((err) => console.warn('[tiger] refresh:', err.message)); }
